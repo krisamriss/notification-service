@@ -23,22 +23,22 @@ func NewNotificationService(n []ports.Notifier, t ports.TemplateEngine, s ports.
 }
 
 func (s *NotificationService) Process(req models.NotificationRequest) error {
-	// 1. Check Scheduling
+	// check if  Scheduling
 	if req.ScheduledAt != nil && req.ScheduledAt.After(time.Now()) {
-		fmt.Println("Delegating to Scheduler...")
+		
 		return s.scheduler.Schedule(req)
 	}
 
-	// 2. Render Template
+	// here i am loading the  template
 	message, err := s.templates.Render(req.TemplateName, req.CustomBody, req.Data)
 	if err != nil {
 		return fmt.Errorf("template rendering failed: %v", err)
 	}
 
-	// 3. Channel Mapping (Strategy Pattern)
+	// channel Mapping
 	for _, notifier := range s.notifiers {
 		if notifier.Supports() == req.Channel {
-			// Send instantly
+			// sending
 			return notifier.Send(req.UserID, message)
 		}
 	}

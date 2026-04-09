@@ -8,9 +8,8 @@ import (
 	"notification-service/internal/core/models"
 )
 
-// SlackNotifier implements the Notifier interface for Slack
 type SlackNotifier struct {
-	webhookURL string // Slack webhook URL loaded from config/env
+	webhookURL string // Slack webhook
 }
 
 func NewSlackNotifier(webhookURL string) *SlackNotifier {
@@ -20,18 +19,15 @@ func NewSlackNotifier(webhookURL string) *SlackNotifier {
 }
 
 func (s *SlackNotifier) Send(userID string, message string) error {
-	// Slack expects a specific JSON payload format
+
 	payload := map[string]string{
-		"text": fmt.Sprintf("<@%s> %s", userID, message), // Mentions the user
+		"text": fmt.Sprintf("<@%s> %s", userID, message),
 	}
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal slack payload: %v", err)
 	}
-
-	// PRO-TIP: In production, you would actually make this HTTP call.
-	// Uncomment the below code in a real scenario:
 	
 	resp, err := http.Post(s.webhookURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -44,8 +40,7 @@ func (s *SlackNotifier) Send(userID string, message string) error {
 	}
 	
 
-	// Mocking the successful send for this assignment
-	fmt.Printf("[SLACK] Simulated sending payload to webhook: %s\n", string(jsonData))
+	fmt.Printf("[SLACK] sending payload to webhook: %s\n", string(jsonData))
 	return nil
 }
 
