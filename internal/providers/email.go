@@ -1,17 +1,18 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 	"net/smtp"
 	"notification-service/internal/core/models"
 )
 
 type EmailNotifier struct {
-	host        string // smtp email
-	port        string // port number 
-	username    string // smtp login (your email address)
-	password    string // smtp password
-	fromAddress string // sender email : user.tuskira.ai@gmail.com
+	host        string
+	port        string
+	username    string
+	password    string
+	fromAddress string
 }
 
 func NewEmailNotifier(host, port, username, password, fromAddress string) *EmailNotifier {
@@ -24,34 +25,34 @@ func NewEmailNotifier(host, port, username, password, fromAddress string) *Email
 	}
 }
 
-func (e *EmailNotifier) Send(userID string, message string) error {
+func (e *EmailNotifier) Send(ctx context.Context, userID string, message string) error {
+	type result struct{ err error }
+	ch := make(chan result, 1)
 
-	/*
-		 For this now i am assuming userID is treated directly as the recipient email.
-		 rest for the production i would be fetching the email address using the userID 
-		 from database
-	*/
-	
-	toAddress := userID
+	go func() {
+		toAddress := userID
+		auth := smtp.PlainAuth("", e.username, e.password, e.host)
+		subject := "Notification"
+		emailBody := fmt.Sprintf(
+			"From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
+			e.fromAddress, toAddress, subject, message,
+		)
+		addr := fmt.Sprintf("%s:%s", e.host, e.port)
+		err := smtp.SendMail(addr, auth, e.fromAddress, []string{toAddress}, []byte(emailBody))
+		if err != nil {
+			ch <- result{fmt.Errorf("[EMAIL] failed to send to %s: %w", toAddress, err)}
+			return
+		}
+		fmt.Printf("[EMAIL] Successfully sent to %s: %s\n", toAddress, message)
+		ch <- result{nil}
+	}()
 
-	/* smtp server authentication  */
-	auth := smtp.PlainAuth("", e.username, e.password, e.host)
-
-	subject := "Notification"
-	emailBody := fmt.Sprintf(
-		"From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
-		e.fromAddress, toAddress, subject, message,
-	)
-
-	// smtp mail delivery logic
-	addr := fmt.Sprintf("%s:%s", e.host, e.port)
-	err := smtp.SendMail(addr, auth, e.fromAddress, []string{toAddress}, []byte(emailBody))
-	if err != nil {
-		return fmt.Errorf("[EMAIL] failed to send to %s: %w", toAddress, err)
+	select {
+	case r := <-ch:
+		return r.err
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-
-	fmt.Printf("[EMAIL] Successfully sent to %s: %s\n", toAddress, message)
-	return nil
 }
 
 func (e *EmailNotifier) Supports() models.ChannelType {

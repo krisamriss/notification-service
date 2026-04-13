@@ -13,8 +13,8 @@ const (
 type NotificationRequest struct {
 	UserID       string                 `json:"user_id"`
 	Channel      ChannelType            `json:"channel"`
-	TemplateName string                 `json:"template_name"` 
-	CustomBody   string                 `json:"custom_body"`   
-	Data         map[string]interface{} `json:"data"`          
-	ScheduledAt  *time.Time             `json:"scheduled_at"`  
+	TemplateName string                 `json:"template_name"`
+	CustomBody   string                 `json:"custom_body"`
+	Data         map[string]interface{} `json:"data"`
+	ScheduledAt  *time.Time             `json:"scheduled_at"`
 }

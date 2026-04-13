@@ -22,9 +22,9 @@ func (t *GoTemplateEngine) Render(templateName string, customBody string, data m
 	var tmplString string
 
 	if customBody != "" {
-		tmplString = customBody // User-defined template
+		tmplString = customBody
 	} else {
-		tmplString = t.predefined[templateName] // Predefined template
+		tmplString = t.predefined[templateName]
 	}
 
 	tmpl, err := template.New("notification").Parse(tmplString)

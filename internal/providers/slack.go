@@ -2,6 +2,7 @@ package providers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 )
 
 type SlackNotifier struct {
-	webhookURL string // Slack webhook
+	webhookURL string
 }
 
 func NewSlackNotifier(webhookURL string) *SlackNotifier {
@@ -18,8 +19,7 @@ func NewSlackNotifier(webhookURL string) *SlackNotifier {
 	}
 }
 
-func (s *SlackNotifier) Send(userID string, message string) error {
-
+func (s *SlackNotifier) Send(ctx context.Context, userID string, message string) error {
 	payload := map[string]string{
 		"text": fmt.Sprintf("<@%s> %s", userID, message),
 	}
@@ -28,17 +28,22 @@ func (s *SlackNotifier) Send(userID string, message string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal slack payload: %v", err)
 	}
-	
-	resp, err := http.Post(s.webhookURL, "application/json", bytes.NewBuffer(jsonData))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.webhookURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create slack request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send slack message: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("slack API returned status: %d", resp.StatusCode)
 	}
-	
 
 	fmt.Printf("[SLACK] sending payload to webhook: %s\n", string(jsonData))
 	return nil
